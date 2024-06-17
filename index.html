@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vidhu Sarwal</title>
+    <title>Resume Viewer</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf_viewer.css">
     <style>
         body {
@@ -58,6 +58,18 @@
             border: none;
             display: block;
         }
+        @media (max-width: 600px) {
+            .container {
+                width: 100%;
+                height: 100%;
+                max-width: none;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            .pdf-viewer {
+                height: 70%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -84,14 +96,13 @@
             pdf.getPage(1).then(function(page) {
                 console.log('Page loaded');
 
-                const viewport = page.getViewport({ scale: 1.5 });
+                const container = document.querySelector('.pdf-viewer');
+                const viewport = page.getViewport({ scale: 1 });
+                const scale = Math.min(container.clientWidth / viewport.width, container.clientHeight / viewport.height);
+                const scaledViewport = page.getViewport({ scale: scale });
+
                 const canvas = document.getElementById('pdf-canvas');
                 const context = canvas.getContext('2d');
-
-                // Adjust canvas size to fit the container
-                const container = document.querySelector('.pdf-viewer');
-                const scale = container.clientWidth / viewport.width;
-                const scaledViewport = page.getViewport({ scale: scale });
 
                 // Set higher resolution for better quality
                 const outputScale = window.devicePixelRatio || 1;
@@ -100,8 +111,7 @@
                 canvas.style.width = `${Math.floor(scaledViewport.width)}px`;
                 canvas.style.height = `${Math.floor(scaledViewport.height)}px`;
 
-                // Center canvas horizontally
-                canvas.style.margin = "auto";
+                context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
 
                 const renderContext = {
                     canvasContext: context,
