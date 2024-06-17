@@ -29,6 +29,7 @@
             background-color: white;
             border-radius: 10px;
             overflow: hidden;
+            position: relative;
         }
         .pdf-viewer {
             display: flex;
@@ -38,21 +39,32 @@
             height: 80%;
             overflow: auto;
             background-color: #e4e4e4;
+            position: relative;
         }
-        .download-button {
-            margin: 20px 0;
+        .pdf-canvas-container {
+            position: relative;
+            cursor: grab;
+        }
+        .download-button, .zoom-buttons {
+            margin: 10px 0;
             text-align: center;
         }
-        .download-button a {
+        .download-button a, .zoom-buttons button {
             text-decoration: none;
             background-color: #007bff;
             color: white;
             padding: 10px 20px;
             border-radius: 5px;
+            border: none;
+            cursor: pointer;
             transition: background-color 0.3s ease;
         }
-        .download-button a:hover {
+        .download-button a:hover, .zoom-buttons button:hover {
             background-color: #0056b3;
+        }
+        .zoom-buttons {
+            display: flex;
+            gap: 10px;
         }
         #pdf-canvas {
             border: none;
@@ -75,7 +87,13 @@
 <body>
     <div class="container">
         <div class="pdf-viewer">
-            <canvas id="pdf-canvas"></canvas>
+            <div class="pdf-canvas-container">
+                <canvas id="pdf-canvas"></canvas>
+            </div>
+        </div>
+        <div class="zoom-buttons">
+            <button id="zoom-in">Zoom In</button>
+            <button id="zoom-out">Zoom Out</button>
         </div>
         <div class="download-button">
             <a href="resume.pdf" download>Download Resume</a>
@@ -85,42 +103,79 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
     <script>
         const url = 'resume.pdf';
-
         const pdfjsLib = window['pdfjs-dist/build/pdf'];
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';
 
-        const loadingTask = pdfjsLib.getDocument(url);
-        loadingTask.promise.then(function(pdf) {
-            console.log('PDF loaded');
+        let pdfDoc = null;
+        let pageNum = 1;
+        let scale = 1;
+        const canvas = document.getElementById('pdf-canvas');
+        const ctx = canvas.getContext('2d');
+        const pdfViewer = document.querySelector('.pdf-viewer');
 
-            pdf.getPage(1).then(function(page) {
-                console.log('Page loaded');
+        // Loading PDF
+        pdfjsLib.getDocument(url).promise.then(pdf => {
+            pdfDoc = pdf;
+            renderPage(pageNum);
+        });
 
-                const container = document.querySelector('.pdf-viewer');
-                const viewport = page.getViewport({ scale: 1 });
-                const scale = Math.min(container.clientWidth / viewport.width, container.clientHeight / viewport.height);
-                const scaledViewport = page.getViewport({ scale: scale });
-
-                const canvas = document.getElementById('pdf-canvas');
-                const context = canvas.getContext('2d');
-
-                // Set higher resolution for better quality
-                const outputScale = window.devicePixelRatio || 1;
-                canvas.width = Math.floor(scaledViewport.width * outputScale);
-                canvas.height = Math.floor(scaledViewport.height * outputScale);
-                canvas.style.width = `${Math.floor(scaledViewport.width)}px`;
-                canvas.style.height = `${Math.floor(scaledViewport.height)}px`;
-
-                context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
+        function renderPage(num) {
+            pdfDoc.getPage(num).then(page => {
+                const viewport = page.getViewport({ scale: scale });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
 
                 const renderContext = {
-                    canvasContext: context,
-                    viewport: scaledViewport
+                    canvasContext: ctx,
+                    viewport: viewport
                 };
+
                 page.render(renderContext);
             });
-        }, function(reason) {
-            console.error(reason);
+        }
+
+        // Zoom In
+        document.getElementById('zoom-in').addEventListener('click', () => {
+            scale += 0.2;
+            renderPage(pageNum);
+        });
+
+        // Zoom Out
+        document.getElementById('zoom-out').addEventListener('click', () => {
+            scale = Math.max(scale - 0.2, 0.2); // Prevent scale from being too small
+            renderPage(pageNum);
+        });
+
+        // Pan
+        let isDragging = false;
+        let startX, startY;
+
+        const pdfCanvasContainer = document.querySelector('.pdf-canvas-container');
+
+        pdfCanvasContainer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.pageX - pdfCanvasContainer.offsetLeft;
+            startY = e.pageY - pdfCanvasContainer.offsetTop;
+            pdfCanvasContainer.style.cursor = 'grabbing';
+        });
+
+        pdfCanvasContainer.addEventListener('mouseup', () => {
+            isDragging = false;
+            pdfCanvasContainer.style.cursor = 'grab';
+        });
+
+        pdfCanvasContainer.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const dx = e.pageX - startX;
+                const dy = e.pageY - startY;
+                pdfCanvasContainer.style.left = `${dx}px`;
+                pdfCanvasContainer.style.top = `${dy}px`;
+            }
+        });
+
+        pdfCanvasContainer.addEventListener('mouseleave', () => {
+            isDragging = false;
+            pdfCanvasContainer.style.cursor = 'grab';
         });
     </script>
 </body>
