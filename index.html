@@ -31,9 +31,13 @@
             overflow: hidden;
         }
         .pdf-viewer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             width: 100%;
             height: 80%;
             overflow: auto;
+            background-color: #e4e4e4;
         }
         .download-button {
             margin: 20px 0;
@@ -51,8 +55,8 @@
             background-color: #0056b3;
         }
         #pdf-canvas {
-            width: 100%;
             border: none;
+            display: block;
         }
     </style>
 </head>
@@ -96,12 +100,12 @@
                 canvas.style.width = `${Math.floor(scaledViewport.width)}px`;
                 canvas.style.height = `${Math.floor(scaledViewport.height)}px`;
 
-                const transform = context.scale(outputScale, outputScale);
+                // Center canvas horizontally
+                canvas.style.margin = "auto";
 
                 const renderContext = {
                     canvasContext: context,
-                    viewport: scaledViewport,
-                    transform: transform
+                    viewport: scaledViewport
                 };
                 page.render(renderContext);
             });
