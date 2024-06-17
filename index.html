@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resume Viewer</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf_viewer.css">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -15,7 +16,9 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            background-color: #f0f0f0;
+            background-color: #121212;
+            color: #ffffff;
+            transition: background-color 0.3s, color 0.3s;
         }
         .container {
             display: flex;
@@ -26,17 +29,18 @@
             height: 90%;
             max-width: 900px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            background-color: white;
+            background-color: #1e1e1e;
             border-radius: 10px;
             overflow: hidden;
             position: relative;
+            padding: 15px;
         }
         .pdf-viewer {
             display: flex;
             align-items: center;
             justify-content: center;
             width: 100%;
-            height: 80%;
+            height: 70%;
             overflow: hidden;
             background-color: #e4e4e4;
             position: relative;
@@ -66,6 +70,13 @@
             display: flex;
             gap: 10px;
         }
+        .toggle-mode {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 24px;
+        }
         #pdf-canvas {
             border: none;
             display: block;
@@ -82,21 +93,35 @@
                 height: 70%;
             }
         }
+        .light-mode {
+            background-color: #f0f0f0;
+            color: #000000;
+        }
+        .light-mode .container {
+            background-color: #ffffff;
+        }
+        .light-mode .toggle-mode {
+            color: #000000;
+        }
+        .light-mode .pdf-viewer {
+            background-color: #f0f0f0;
+        }
     </style>
 </head>
-<body>
+<body class="dark-mode">
     <div class="container">
+        <div class="toggle-mode" id="toggle-mode">🌙</div>
         <div class="pdf-viewer">
             <div class="pdf-canvas-container">
                 <canvas id="pdf-canvas"></canvas>
             </div>
         </div>
-        <div class="zoom-buttons">
+        <div class="zoom-buttons mt-3">
             <button id="zoom-in">Zoom In</button>
             <button id="zoom-out">Zoom Out</button>
             <button id="reset-view">Reset View</button>
         </div>
-        <div class="download-button">
+        <div class="download-button mt-3">
             <a href="resume.pdf" download>Download Resume</a>
         </div>
     </div>
@@ -110,6 +135,8 @@
         let pdfDoc = null;
         let pageNum = 1;
         let scale = 1;
+        const minScale = 0.5;
+        const maxScale = 2.0;
         const canvas = document.getElementById('pdf-canvas');
         const ctx = canvas.getContext('2d');
         const pdfViewer = document.querySelector('.pdf-viewer');
@@ -139,8 +166,9 @@
                     viewport: viewport
                 };
 
-                page.render(renderContext);
-                resetCanvasPosition();
+                page.render(renderContext).promise.then(() => {
+                    resetCanvasPosition();
+                });
             });
         }
 
@@ -152,13 +180,13 @@
 
         // Zoom In
         document.getElementById('zoom-in').addEventListener('click', () => {
-            scale += 0.2;
+            scale = Math.min(scale + 0.2, maxScale);
             renderPage(pageNum);
         });
 
         // Zoom Out
         document.getElementById('zoom-out').addEventListener('click', () => {
-            scale = Math.max(scale - 0.2, 0.2); // Prevent scale from being too small
+            scale = Math.max(scale - 0.2, minScale);
             renderPage(pageNum);
         });
 
@@ -204,6 +232,18 @@
         pdfCanvasContainer.addEventListener('mouseleave', () => {
             isDragging = false;
             pdfCanvasContainer.style.cursor = 'grab';
+        });
+
+        // Dark and Light Mode Toggle
+        const toggleModeButton = document.getElementById('toggle-mode');
+        toggleModeButton.addEventListener('click', () => {
+            document.body.classList.toggle('light-mode');
+            document.body.classList.toggle('dark-mode');
+            if (document.body.classList.contains('dark-mode')) {
+                toggleModeButton.textContent = '🌙';
+            } else {
+                toggleModeButton.textContent = '☀️';
+            }
         });
     </script>
 </body>
